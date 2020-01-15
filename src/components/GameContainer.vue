@@ -1,104 +1,107 @@
 <template>
   <div class="game-container">
-    <el-row :gutter="20">
-      <el-col :span="12" :offset="6">
-        <el-row :gutter="10">
-          <el-col :span="8">
-            <div class="grid-content">
-              <el-tag type="warning">Questions left: 5</el-tag>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="grid-content">
-              <el-tag type="info">Complexity: easy</el-tag>
-            </div>
-          </el-col>
-          <el-col :span="8">
-            <div class="grid-content">
-              <el-tag type="success">Points: 3</el-tag>
-            </div>
-          </el-col>
-        </el-row>
-      </el-col>
-    </el-row>
-    <el-row></el-row>
     <h1><span class="true">True</span> or <span class="false">False</span>?</h1>
-    <el-row></el-row>
-    <el-row :gutter="20">
-      <el-col :offset="4" :span="16">
-        <div class="grid-content">
-          <el-row :gutter="12">
-            <el-col :span="24">
-              <el-card shadow="never">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore
-                et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-                aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-                cillum dolore eu fugiat nulla pariatur.
-              </el-card>
-            </el-col>
-          </el-row>
-        </div>
-      </el-col>
-    </el-row>
-    <el-row :gutter="20">
-      <el-col :offset="4" :span="16">
-        <div class="grid-content">
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-card shadow="hover">
-                <i class="el-icon-check"></i> True
-              </el-card>
-            </el-col>
-            <el-col :span="12">
-              <el-card shadow="hover">
-                <i class="el-icon-close"></i>False
-              </el-card>
-            </el-col>
-          </el-row>
-        </div>
-      </el-col>
-    </el-row>
+    <div v-if="gameWin">
+      <h1 class="true">😳🕺 Wow! You Win The Game! Congratulations!</h1>
+    </div>
+    <div v-if="gameOver">
+      <h1>Sorry! The game is over! Want to try again?</h1>
+      <el-button @click="startGame">New Game</el-button>
+    </div>
+    <div v-if="questions.length && !gameOver && !gameWin" v-loading="isLoading">
+      <GameInfo
+        :difficulty="currentQuestion.difficulty"
+        :points="points"
+        :questions-left="questions.length - questionIndex"
+      />
+      <Question :text="currentQuestion.question" />
+      <Answers
+        @correctAnswer="onCorrectAnswer"
+        @wrongAnswer="onWrongAnswer"
+        :correctAnswer="currentQuestion.correct_answer === 'True'"
+      />
+    </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios'
+import Question from './Question'
+import Answers from './Answers'
+import GameInfo from './GameInfo'
+
 export default {
-  name: 'GameContainer'
+  name: 'GameContainer',
+  components: { Question, Answers, GameInfo },
+  data () {
+    return {
+      questionsCount: 5,
+      questions: [],
+      questionIndex: 0,
+      isLoading: true,
+      points: 0,
+      gameOver: false,
+      gameWin: false
+    }
+  },
+  computed: {
+    currentQuestion () {
+      return this.questions[this.questionIndex]
+    }
+  },
+  mounted () {
+    this.startGame()
+  },
+  methods: {
+    startGame () {
+      this.gameOver = false
+      this.loadData()
+      this.questionIndex = 0
+      this.points = 0
+    },
+    async loadData () {
+      this.isLoading = true
+      const res = await axios.get(`https://opentdb.com/api.php?amount=${this.questionsCount}&category=9&type=boolean`)
+      this.isLoading = false
+      this.questions = res.data.results
+    },
+    onCorrectAnswer () {
+      this.$notify.success({
+        title: 'Success',
+        message: 'Great! 🤩 Right Answer!',
+        duration: 1500
+      })
+      this.questionIndex++
+      this.points++
+      if (this.questionIndex === this.questions.length - 1) {
+        this.gameWin = true
+      }
+    },
+    onWrongAnswer () {
+      this.$notify.error({
+        title: 'Oops',
+        message: 'it was a wrong answer 😢 Good luck for you next time!',
+        duration: 1500
+      })
+      this.gameOver = true
+    }
+  }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped lang="scss">
+<style lang="scss">
+  h1  {
+    margin-top: 80px;
+    margin-bottom: 50px;
+  }
+  .el-notification {
+    font-family: 'Avenir', Helvetica, Arial, sans-serif !important;
+  }
   .true {
     color: #67C23A;
   }
   .false {
     color: #f56C6C;
-  }
-  .el-row {
-    margin-bottom: 20px;
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-  .el-col {
-    border-radius: 4px;
-  }
-  .bg-purple-dark {
-    background: #99a9bf;
-  }
-  .bg-purple {
-    background: #d3dce6;
-  }
-  .bg-purple-light {
-    background: #e5e9f2;
-  }
-  .grid-content {
-    border-radius: 4px;
-    min-height: 36px;
-  }
-  .row-bg {
-    padding: 10px 0;
-    background-color: #f9fafc;
   }
 </style>
